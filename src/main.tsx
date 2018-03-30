@@ -23,13 +23,13 @@ export const ItemTypes = {
 };
 
 const boxSource = {
-    beginDrag(props) {
+    beginDrag(props: any) {
         return {
             symbol: props.symbol,
         }
     },
 
-    endDrag(props, monitor) {
+    endDrag(props: any, monitor: any) {
         const item = monitor.getItem()
         const dropResult = monitor.getDropResult()
 
@@ -38,16 +38,16 @@ const boxSource = {
 }
 
 const squareTarget = {
-    canDrop(props) {
+    canDrop(props: any) {
         return true;
     },
 
-    drop(props) {
+    drop(props: any) {
         console.log('dropped');
     }
 };
 
-function collect(connect, monitor) {
+function collect(connect: any, monitor: any) {
     return {
         connectDropTarget: connect.dropTarget(),
         isOver: monitor.isOver(),
@@ -61,7 +61,7 @@ function collect(connect, monitor) {
     isDragging: monitor.isDragging()
 }))
 @DropTarget(ItemTypes.PREPOSITION, squareTarget, collect)
-class DraggablePreposition extends React.Component {
+class DraggablePreposition extends React.Component<any, any> {
     render() {
         const { connectDragSource, isDragging } = this.props;
         const { connectDropTarget, isOver, canDrop } = this.props;
@@ -73,7 +73,7 @@ class DraggablePreposition extends React.Component {
     }
 }
 
-class Symbol extends React.Component {
+class Symbol extends React.Component<any, any> {
     render() {
         let style = {
             padding: '3px 3px 3px 10px',

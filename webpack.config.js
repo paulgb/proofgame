@@ -3,7 +3,7 @@ const path = require('path');
 
 module.exports = {
     context: path.resolve('src'),
-    entry: './main.jsx',
+    entry: './main.tsx',
     mode: 'development',
     output: {
         path: path.resolve('dist'),
@@ -11,18 +11,14 @@ module.exports = {
     },
     devtool: "source-map",
     resolve: {
-        extensions: [".jsx", ".js", ".json"]
+        extensions: [".tsx", ".ts", ".jsx", ".js", ".json"]
     },
     module: {
         rules: [
             {
-                test: /\.jsx?$/,
+                test: /\.[tj]sx?$/,
                 use: {
-                    loader: 'babel-loader',
-                    query: {
-                        presets: ['react', 'stage-0'],
-                        plugins: ["transform-decorators-legacy"]
-                    }
+                    loader: 'ts-loader',
                 },
                 exclude: /node_modules/
             }
