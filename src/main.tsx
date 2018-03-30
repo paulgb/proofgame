@@ -1,7 +1,15 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { DragDropContextProvider, DropTarget, DragSource } from 'react-dnd';
+import {
+    DragDropContextProvider, DropTarget,
+    DragSource, DropTargetSpec, DragSourceSpec,
+    DropTargetMonitor, DragSourceMonitor, DragSourceConnector,
+    DropTargetConnector
+} from 'react-dnd';
 import HTML5Backend from 'react-dnd-html5-backend';
+
+
+import { PropSymbol, Inference, Proposition } from './proofs';
 
 /*
 
@@ -18,18 +26,19 @@ Dragging proven preposition over a proven preposition applies the MP rule, creat
 
 */
 
-export const ItemTypes = {
-    PREPOSITION: 'preposition',
-};
 
-const boxSource = {
+type PropositionComponentProps = {
+    proposition: Proposition
+}
+
+const propSource = {
     beginDrag(props: any) {
         return {
-            symbol: props.symbol,
+            prop: props.proposition
         }
     },
 
-    endDrag(props: any, monitor: any) {
+    endDrag(props: PropositionComponentProps, monitor: DragSourceMonitor) {
         const item = monitor.getItem()
         const dropResult = monitor.getDropResult()
 
@@ -37,17 +46,24 @@ const boxSource = {
     },
 }
 
-const squareTarget = {
-    canDrop(props: any) {
+const propTarget: DropTargetSpec<{}> = {
+    canDrop(props: {}) {
         return true;
     },
 
-    drop(props: any) {
-        console.log('dropped');
+    drop(props: {}) {
+        //console.log('dropped', props);
     }
 };
 
-function collect(connect: any, monitor: any) {
+function sourceCollect(connect: DragSourceConnector, monitor: DragSourceMonitor) {
+    return {
+        connectDragSource: connect.dragSource(),
+        isDragging: monitor.isDragging()
+    };
+}
+
+function targetCollect(connect: DropTargetConnector, monitor: DropTargetMonitor) {
     return {
         connectDropTarget: connect.dropTarget(),
         isOver: monitor.isOver(),
@@ -56,44 +72,66 @@ function collect(connect: any, monitor: any) {
 }
 
 
-@DragSource(ItemTypes.PREPOSITION, boxSource, (connect, monitor) => ({
-    connectDragSource: connect.dragSource(),
-    isDragging: monitor.isDragging()
-}))
-@DropTarget(ItemTypes.PREPOSITION, squareTarget, collect)
-class DraggablePreposition extends React.Component<any, any> {
+class PropositionComponent extends React.Component<any, {}> {
+    render(): JSX.Element {
+        if (this.props.proposition instanceof PropSymbol) {
+            return this.props.proposition.symbol as any;
+        } else if (this.props.proposition instanceof Inference) {
+            return <span style={{ fontFamily: 'monospace' }}>(
+                        <PropositionComponent proposition={this.props.proposition.antecedent} />
+                → <PropositionComponent proposition={this.props.proposition.consequent} />)
+            </span>
+        } else {
+            return 'unknown class' as any;
+        }
+    }
+}
+
+@DragSource('prop', propSource, sourceCollect)
+@DropTarget('prop', propTarget, targetCollect)
+class DraggableProposition extends React.Component<any, any> {
     render() {
         const { connectDragSource, isDragging } = this.props;
         const { connectDropTarget, isOver, canDrop } = this.props;
 
-        console.log(this.props.children);
-        return connectDragSource(
-            connectDropTarget(
-                <div>{this.props.children}</div>));
-    }
-}
-
-class Symbol extends React.Component<any, any> {
-    render() {
         let style = {
-            padding: '3px 3px 3px 10px',
+            padding: '3px 3px 3px 6px',
             border: '1px solid #ccc',
             borderRadius: '3px',
-            marginLeft: '3px',
+            marginTop: '3px',
             cursor: 'move',
-            width: '12px',
+            display: 'inline-block'
         };
-        return <div style={style}>{this.props.symbol}</div>;
+
+        return connectDragSource(
+            connectDropTarget(
+                <div style={style}>
+                    <PropositionComponent proposition={this.props.proposition} />
+                </div>));
     }
 }
 
-class Controller extends React.Component {
+
+class Controller extends React.Component<any, any> {
+    constructor(props: any) {
+        super(props);
+
+        this.state = {
+            propositions: [
+                new PropSymbol('🙊'),
+                new PropSymbol('🐹'),
+                new Inference(new PropSymbol('🙊'), new PropSymbol('🐹'))
+            ]
+        }
+    }
+
     render() {
+        let propComponents = this.state.propositions.map((x: any, i: number) => <li key={i}><DraggableProposition proposition={x} /></li>)
+
         return <DragDropContextProvider backend={HTML5Backend}>
-            <div>
-                <DraggablePreposition><Symbol symbol='🙊' /></DraggablePreposition>
-                <DraggablePreposition><Symbol symbol='🐹' /></DraggablePreposition>
-            </div>
+            <ul style={{ listStyle: 'none' }}>
+                {propComponents}
+            </ul>
         </DragDropContextProvider>;
     }
 }
