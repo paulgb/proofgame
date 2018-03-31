@@ -27,22 +27,29 @@ Dragging proven preposition over a proven preposition applies the MP rule, creat
 */
 
 
-type PropositionComponentProps = {
-    proposition: Proposition
+type DragablePropositionComponentProps = {
+    proposition: Proposition,
+    onDropProposition: (dragProposition: Proposition, dropProposition: Proposition) => void
 }
 
+type PropositionComponentProps = {
+    proposition: Proposition,
+}
+
+
 const propSource = {
-    beginDrag(props: any) {
+    beginDrag(props: DragablePropositionComponentProps) {
         return {
-            prop: props.proposition
+            proposition: props.proposition,
+            //onDropProposition: props.onDropProposition
         }
     },
 
     endDrag(props: PropositionComponentProps, monitor: DragSourceMonitor) {
         const item = monitor.getItem()
-        const dropResult = monitor.getDropResult()
+        const dropResult = monitor.getDropResult();
 
-        console.log('h2', item);
+        (dropResult as any).onDropProposition((item as any).proposition, (dropResult as any).proposition);
     },
 }
 
@@ -51,8 +58,11 @@ const propTarget: DropTargetSpec<{}> = {
         return true;
     },
 
-    drop(props: {}) {
-        //console.log('dropped', props);
+    drop(props: DragablePropositionComponentProps) {
+        return {
+            proposition: props.proposition,
+            onDropProposition: props.onDropProposition
+        }
     }
 };
 
@@ -72,7 +82,7 @@ function targetCollect(connect: DropTargetConnector, monitor: DropTargetMonitor)
 }
 
 
-class PropositionComponent extends React.Component<any, {}> {
+class PropositionComponent extends React.Component<PropositionComponentProps, {}> {
     render(): JSX.Element {
         if (this.props.proposition instanceof PropSymbol) {
             return this.props.proposition.symbol as any;
@@ -87,7 +97,7 @@ class PropositionComponent extends React.Component<any, {}> {
     }
 }
 
-@DragSource('prop', propSource, sourceCollect)
+@DragSource('prop', propSource as any, sourceCollect)
 @DropTarget('prop', propTarget, targetCollect)
 class DraggableProposition extends React.Component<any, any> {
     render() {
@@ -125,8 +135,19 @@ class Controller extends React.Component<any, any> {
         }
     }
 
+    onDropProposition(dragProposition: Proposition, dropProposition: Proposition) {
+        console.log(dragProposition, dropProposition);
+
+        let inference = new Inference(dragProposition, dropProposition);
+
+        this.setState({
+            propositions: this.state.propositions.concat([inference])
+        });
+    }
+
     render() {
-        let propComponents = this.state.propositions.map((x: any, i: number) => <li key={i}><DraggableProposition proposition={x} /></li>)
+        let propComponents = this.state.propositions.map((x: any, i: number) =>
+            <li key={i}><DraggableProposition onDropProposition={this.onDropProposition.bind(this)} proposition={x} /></li>)
 
         return <DragDropContextProvider backend={HTML5Backend}>
             <ul style={{ listStyle: 'none' }}>
