@@ -110,7 +110,8 @@ class DraggableProposition extends React.Component<any, any> {
             borderRadius: '3px',
             marginTop: '3px',
             cursor: 'move',
-            display: 'inline-block'
+            display: 'inline-block',
+            background: isOver ? '#eee' : 'white',
         };
 
         return connectDragSource(
@@ -123,21 +124,54 @@ class DraggableProposition extends React.Component<any, any> {
 
 
 class Controller extends React.Component<any, any> {
+    static AXIOMS: Map<string, (p: Proposition) => Proposition> = new Map([
+        ['(A → (B → A))', (p: Proposition): Proposition => {
+            if (p instanceof Inference) {
+                let rule = new Inference(p.consequent, p);
+                return rule;
+            }
+            console.log('no match');
+            return null as any;
+        }],
+        ['(A → (B → C)) → ((A → B) → (B → C))', (p: Proposition): Proposition => {
+            if (p instanceof Inference) {
+                if (p.consequent instanceof Inference) {
+                    let A = p.antecedent;
+                    let B = p.consequent.antecedent;
+                    let C = p.consequent.consequent;
+                    return new Inference(p, new Inference(
+                        new Inference(A, B),
+                        new Inference(B, C)
+                    ));
+                }
+            }
+            console.log('no match');
+            return null as any;
+        }]
+    ]);
+
     constructor(props: any) {
         super(props);
 
+        let X = new PropSymbol('🙊');
+        let Y = new PropSymbol('🐹');
+        let Z = new PropSymbol('🐷');
+
         this.state = {
             propositions: [
-                new PropSymbol('🙊'),
-                new PropSymbol('🐹'),
-                new Inference(new PropSymbol('🙊'), new PropSymbol('🐹'))
-            ]
+                X,
+                Y,
+                Z,
+            ],
+            hypotheses: [
+                new Inference(X, Y),
+                new Inference(Y, Z),
+            ],
+            axioms: Array.from(Controller.AXIOMS.keys()).map((k: any) => new PropSymbol(k))
         }
     }
 
     onDropProposition(dragProposition: Proposition, dropProposition: Proposition) {
-        console.log(dragProposition, dropProposition);
-
         let inference = new Inference(dragProposition, dropProposition);
 
         this.setState({
@@ -145,14 +179,63 @@ class Controller extends React.Component<any, any> {
         });
     }
 
+    onDropHypothesis(dragProposition: Proposition, dropProposition: Proposition) {
+        if (dropProposition instanceof Inference) {
+            if (!dropProposition.antecedent.equals(dragProposition)) {
+                console.log(`${dragProposition} is not the antecedent of ${dropProposition}`);
+                return;
+            }
+
+            this.setState({
+                hypotheses: this.state.hypotheses.concat([dropProposition.consequent])
+            })
+        } else {
+            console.log(`Can't apply MP to ${dropProposition} because it is not an inference.`);
+        }
+    }
+
+    onDropAxiom(dragProposition: Proposition, dropProposition: Proposition) {
+        if (dropProposition instanceof PropSymbol) {
+            let rule = (Controller.AXIOMS.get(dropProposition.symbol) as any)(dragProposition);
+
+            if (rule !== null) {
+                this.setState({
+                    hypotheses: this.state.hypotheses.concat([rule])
+                })
+            }
+        }
+
+    }
+
     render() {
+        let hypComponents = this.state.hypotheses.map((x: any, i: number) =>
+            <li key={i}><DraggableProposition onDropProposition={this.onDropHypothesis.bind(this)} proposition={x} /></li>)
+
         let propComponents = this.state.propositions.map((x: any, i: number) =>
             <li key={i}><DraggableProposition onDropProposition={this.onDropProposition.bind(this)} proposition={x} /></li>)
 
+        let axiomComponents = this.state.axioms.map((x: any, i: number) =>
+            <li key={i}><DraggableProposition onDropProposition={this.onDropAxiom.bind(this)} proposition={x} /></li>)
+
+
+
         return <DragDropContextProvider backend={HTML5Backend}>
-            <ul style={{ listStyle: 'none' }}>
-                {propComponents}
-            </ul>
+            <div>
+                <p>Hypotheses</p>
+                <ul style={{ listStyle: 'none' }}>
+                    {hypComponents}
+                </ul>
+
+                <p>Axioms</p>
+                <ul style={{ listStyle: 'none' }}>
+                    {axiomComponents}
+                </ul>
+
+                <p>Propositions</p>
+                <ul style={{ listStyle: 'none' }}>
+                    {propComponents}
+                </ul>
+            </div>
         </DragDropContextProvider>;
     }
 }
