@@ -7,7 +7,7 @@ import {
     DropTargetConnector
 } from 'react-dnd';
 import HTML5Backend from 'react-dnd-html5-backend';
-
+import TouchBackend from 'react-dnd-touch-backend';
 
 import { PropSymbol, Inference, Proposition } from './proofs';
 
@@ -219,7 +219,7 @@ class Controller extends React.Component<any, any> {
 
 
 
-        return <DragDropContextProvider backend={HTML5Backend}>
+        return <DragDropContextProvider backend={TouchBackend}>
             <div>
                 <p>Hypotheses</p>
                 <ul style={{ listStyle: 'none' }}>
