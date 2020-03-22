@@ -6,6 +6,7 @@ export abstract class Proposition {
     abstract equals(other: Proposition): boolean
 }
 
+
 export class PropSymbol extends Proposition {
     constructor(public symbol: string) { super() }
 
